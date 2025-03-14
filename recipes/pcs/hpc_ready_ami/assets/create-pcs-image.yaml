@@ -81,6 +81,23 @@ Parameters:
     Default: main
     Description: HPC Recipes for AWS release branch
     AllowedPattern: '^(?!.*/\.git$)(?!.*/\.)(?!.*\\.\.)[a-zA-Z0-9-_\.]+$'
+  SlurmVersion:
+    Type: String
+    Default: '24.05'
+    Description: Major version of Slurm to install
+    AllowedValues:
+         - '24.05'
+         - '23.11'
+  PcsAgentInstallerVersion:
+    Type: String
+    Default: latest
+    Description: Version of the AWS PCS agent installer to use
+    AllowedPattern: '^(latest|[0-9]+)$'
+  EfaVersion:
+    Type: String
+    Default: 'latest'
+    Description: Major version of Slurm to install
+    AllowedPattern: '^(latest|[0-9]+\.[0-9]+\.[0-9]+)$'
   # /Substack Parameters
 
 Conditions: 
@@ -101,6 +118,9 @@ Resources:
       Parameters:
         HpcRecipesS3Bucket: !Ref HpcRecipesS3Bucket
         HpcRecipesBranch: !Ref HpcRecipesBranch
+        SlurmVersion: !Ref SlurmVersion
+        PcsAgentInstallerVersion: !Ref PcsAgentInstallerVersion
+        EfaVersion: !Ref EfaVersion
       TemplateURL: !Sub 'https://${HpcRecipesS3Bucket}.s3.us-east-1.amazonaws.com/${HpcRecipesBranch}/recipes/pcs/hpc_ready_ami/assets/nested-imagebuilder-components.yaml'
 
   PCSImageRecipe:
@@ -178,6 +198,10 @@ Resources:
       DistributionConfigurationArn: !GetAtt PCSDistributionConfiguration.Arn
       ImageRecipeArn: !GetAtt PCSImageRecipe.Arn
       InfrastructureConfigurationArn: !GetAtt PCSInfrastructureConfiguration.Arn
+      Tags:
+        SlurmVersion: !Ref SlurmVersion
+        EfaVersion: !Ref EfaVersion
+        PcsAgentInstallerVersion: !Ref PcsAgentInstallerVersion
 
 Outputs:
   Image:

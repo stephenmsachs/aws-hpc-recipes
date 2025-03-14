@@ -11,8 +11,12 @@ Metadata:
           - HpcRecipesS3Bucket
           - HpcRecipesBranch
 
-# TODO - parameterize EfaVersion
 Parameters:
+  EfaVersion:
+    Type: String
+    Default: 'latest'
+    Description: Major version of Slurm to install
+    AllowedPattern: '^(latest|[0-9]+\.[0-9]+\.[0-9]+)$'
   HpcRecipesS3Bucket:
     Type: String
     Default: aws-hpc-recipes
@@ -38,10 +42,10 @@ Resources:
         name: 'Elastic Fabric Adapter installer'
         schemaVersion: 1.0
         parameters:
-          - EfaVersion:
+          - PcsEfaVersion:
               type: string
               description: 'EFA version to install'
-              default: 'latest'
+              default: '${EfaVersion}'
         phases:
           - name: build
             steps:
@@ -56,7 +60,7 @@ Resources:
                   commands:
                     - set -e
                     - 'chmod +x install-efa.sh'
-                    - './install-efa.sh --efa-installer-version={{ EfaVersion }}'
+                    - './install-efa.sh --efa-installer-version={{ PcsEfaVersion }}'
 
 
 Outputs:
