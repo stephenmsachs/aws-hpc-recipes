@@ -15,7 +15,7 @@ Parameters:
   EfaVersion:
     Type: String
     Default: 'latest'
-    Description: Major version of Slurm to install
+    Description: Version of EFA installer to use
     AllowedPattern: '^(latest|[0-9]+\.[0-9]+\.[0-9]+)$'
   HpcRecipesS3Bucket:
     Type: String
@@ -44,7 +44,7 @@ Resources:
         parameters:
           - PcsEfaVersion:
               type: string
-              description: 'EFA version to install'
+              description: 'EFA installer version to use'
               default: '${EfaVersion}'
         phases:
           - name: build

@@ -36,7 +36,7 @@ Parameters:
   EfaVersion:
     Type: String
     Default: 'latest'
-    Description: Major version of Slurm to install
+    Description: Version of EFA installer to use
     AllowedPattern: '^(latest|[0-9]+\.[0-9]+\.[0-9]+)$'
 
 Resources:
@@ -106,7 +106,7 @@ Resources:
       Parameters:
         HpcRecipesS3Bucket: !Ref HpcRecipesS3Bucket
         HpcRecipesBranch: !Ref HpcRecipesBranch
-        Slurmversion: !Ref SlurmVersion
+        SlurmVersion: !Ref SlurmVersion
       TemplateURL: !Sub 'https://${HpcRecipesS3Bucket}.s3.us-east-1.amazonaws.com/${HpcRecipesBranch}/recipes/pcs/hpc_ready_ami/assets/components/install-pcs-slurm.yaml'
       TimeoutInMinutes: 10
 
