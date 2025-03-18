@@ -241,7 +241,7 @@ Resources:
                   return
 
               # Get the ImageId from the environment variable
-              image_id = event['ResourceProperties'].get('ImageId'])
+              image_id = event['ResourceProperties'].get('ImageId')
               image_region = event['ResourceProperties'].get('ImageRegion')
               slurm_version = event['ResourceProperties'].get('SlurmVersion')
               efa_version = event['ResourceProperties'].get('EfaVersion')
