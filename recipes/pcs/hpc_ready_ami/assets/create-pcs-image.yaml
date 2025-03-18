@@ -220,6 +220,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - 'ec2:CreateTags'
+                  - 'ec2:Describe*'
                 Resource: 'arn:aws:ec2:*::image/*'
 
   TagLambdaFunction:
@@ -229,13 +230,6 @@ Resources:
       Role: !GetAtt TagLambdaExecutionRole.Arn
       Runtime: python3.11
       Timeout: 30
-      Environment:
-        Variables:
-          ImageId: !GetAtt PCSImage.ImageId
-          ImageRegion: !Ref AWS::Region
-          SlurmVersion: !Ref SlurmVersion
-          EfaVersion: !Ref EfaVersion
-          PcsAgentInstallerVersion: !Ref PcsAgentInstallerVersion
       Code:
         ZipFile: |
           import boto3
@@ -247,11 +241,11 @@ Resources:
                   return
 
               # Get the ImageId from the environment variable
-              image_id = event['ImageId']
-              image_region = event['ImageRegion']
-              slurm_version = event['SlurmVersion']
-              efa_version = event['EfaVersion']
-              pcs_agent_installer_version = event['PcsAgentInstallerVersion']
+              image_id = event['ResourceProperties'].get('ImageId'])
+              image_region = event['ResourceProperties'].get('ImageRegion')
+              slurm_version = event['ResourceProperties'].get('SlurmVersion')
+              efa_version = event['ResourceProperties'].get('EfaVersion')
+              pcs_agent_installer_version = event['ResourceProperties'].get('PcsAgentInstallerVersion')
 
               # Get Region from the caller
               region = event['ResourceProperties'].get('Region')
@@ -301,6 +295,11 @@ Resources:
     Properties:
       ServiceToken: !GetAtt TagLambdaFunction.Arn
       Region: !Ref AWS::Region
+      ImageId: !GetAtt PCSImage.ImageId
+      ImageRegion: !Ref AWS::Region
+      SlurmVersion: !Ref SlurmVersion
+      EfaVersion: !Ref EfaVersion
+      PcsAgentInstallerVersion: !Ref PcsAgentInstallerVersion
 
 
 Outputs:
