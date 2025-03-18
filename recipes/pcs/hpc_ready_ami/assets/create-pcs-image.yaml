@@ -228,48 +228,80 @@ Resources:
       Handler: index.lambda_handler
       Role: !GetAtt TagLambdaExecutionRole.Arn
       Runtime: python3.11
+      Timeout: 30
       Environment:
         Variables:
           ImageId: !GetAtt PCSImage.ImageId
+          ImageRegion: !Ref AWS::Region
           SlurmVersion: !Ref SlurmVersion
           EfaVersion: !Ref EfaVersion
           PcsAgentInstallerVersion: !Ref PcsAgentInstallerVersion
       Code:
         ZipFile: |
-          # TODO: Tag images in all locations
           import boto3
+          import cfnresponse
 
           def lambda_handler(event, context):
+              if event['RequestType'] == 'Delete':
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                  return
+
               # Get the ImageId from the environment variable
               image_id = event['ImageId']
+              image_region = event['ImageRegion']
               slurm_version = event['SlurmVersion']
               efa_version = event['EfaVersion']
               pcs_agent_installer_version = event['PcsAgentInstallerVersion']
 
+              # Get Region from the caller
+              region = event['ResourceProperties'].get('Region')
+
               # Create an EC2 client
-              ec2 = boto3.client('ec2')
+              ec2 = boto3.client('ec2', region_name=region)
 
-              # Create a tag for the image
-              response = ec2.create_tags(
-                  Resources=[image_id],
-                  Tags=[
-                      {
-                          'Key': 'slurm_version',
-                          'Value': slurm_version
-                      },
-                      {
-                          'Key': 'efa_version',
-                          'Value': efa_version
-                      },
-                      {
-                          'Key': 'pcs_agent_installer_version',
-                          'Value': pcs_agent_installer_version
-                      },
+              try:
+                  # image_id is the image in one region, we need to find copies of that image_id in all regions
+                  if region == image_region:
+                      copy_id = image_id
+                  else:
+                      response = ec2.describe_images(Filters=[
+                          {
+                              'Name': 'source-image-id',
+                              'Values': [image_id]
+                          },
+                      ])
+                      copy_id = response['Images'][0]['ImageId']
 
-                  ]
-              )
+                  # Tag the image
+                  response = ec2.create_tags(
+                      Resources=[copy_id],
+                      Tags=[
+                          {
+                              'Key': 'slurm_version',
+                              'Value': slurm_version
+                          },
+                          {
+                              'Key': 'efa_version',
+                              'Value': efa_version
+                          },
+                          {
+                              'Key': 'pcs_agent_installer_version',
+                              'Value': pcs_agent_installer_version
+                          },
+                      ]
+                  )
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, response)
+                  # return {'statusCode': 200, 'body': f'Tagged image {image_id}'}
 
-              return {'statusCode': 200, 'body': f'Tagged image {image_id}'}
+              except Exception as e:
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {'error': str(e)})
+
+  TagImage:
+    Type: 'Custom::TagImage'
+    Properties:
+      ServiceToken: !GetAtt TagLambdaFunction.Arn
+      Region: !Ref AWS::Region
+
 
 Outputs:
   Image:
