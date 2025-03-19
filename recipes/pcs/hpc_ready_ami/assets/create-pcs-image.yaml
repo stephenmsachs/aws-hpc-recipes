@@ -248,53 +248,54 @@ Resources:
               pcs_agent_installer_version = event['ResourceProperties'].get('PcsAgentInstallerVersion')
 
               # Get Region from the caller
-              region = event['ResourceProperties'].get('Region')
+              regions = event['ResourceProperties'].get('Regions')
 
-              # Create an EC2 client
-              ec2 = boto3.client('ec2', region_name=region)
+              for region in regions.split(','):
+                  # Create an EC2 client
+                  ec2 = boto3.client('ec2', region_name=region)
+                  try:
+                      # image_id is the image in one region, we need to find copies of that image_id in all regions
+                      if region == image_region:
+                          copy_id = image_id
+                      else:
+                          response = ec2.describe_images(Filters=[
+                              {
+                                  'Name': 'source-image-id',
+                                  'Values': [image_id]
+                              },
+                          ])
+                          copy_id = response['Images'][0]['ImageId']
 
-              try:
-                  # image_id is the image in one region, we need to find copies of that image_id in all regions
-                  if region == image_region:
-                      copy_id = image_id
-                  else:
-                      response = ec2.describe_images(Filters=[
-                          {
-                              'Name': 'source-image-id',
-                              'Values': [image_id]
-                          },
-                      ])
-                      copy_id = response['Images'][0]['ImageId']
+                      # Tag the image
+                      response = ec2.create_tags(
+                          Resources=[copy_id],
+                          Tags=[
+                              {
+                                  'Key': 'slurm_version',
+                                  'Value': slurm_version
+                              },
+                              {
+                                  'Key': 'efa_version',
+                                  'Value': efa_version
+                              },
+                              {
+                                  'Key': 'pcs_agent_installer_version',
+                                  'Value': pcs_agent_installer_version
+                              },
+                          ]
+                      )
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, response)
+                      # return {'statusCode': 200, 'body': f'Tagged image {image_id}'}
+                      ec2.close()
 
-                  # Tag the image
-                  response = ec2.create_tags(
-                      Resources=[copy_id],
-                      Tags=[
-                          {
-                              'Key': 'slurm_version',
-                              'Value': slurm_version
-                          },
-                          {
-                              'Key': 'efa_version',
-                              'Value': efa_version
-                          },
-                          {
-                              'Key': 'pcs_agent_installer_version',
-                              'Value': pcs_agent_installer_version
-                          },
-                      ]
-                  )
-                  cfnresponse.send(event, context, cfnresponse.SUCCESS, response)
-                  # return {'statusCode': 200, 'body': f'Tagged image {image_id}'}
-
-              except Exception as e:
-                  cfnresponse.send(event, context, cfnresponse.FAILED, {'error': str(e)})
+                  except Exception as e:
+                      cfnresponse.send(event, context, cfnresponse.FAILED, {'error': str(e)})
 
   TagImage:
     Type: 'Custom::TagImage'
     Properties:
       ServiceToken: !GetAtt TagLambdaFunction.Arn
-      Region: !Ref AWS::Region
+      Regions: !Ref AWS::Region
       ImageId: !GetAtt PCSImage.ImageId
       ImageRegion: !Ref AWS::Region
       SlurmVersion: !Ref SlurmVersion
