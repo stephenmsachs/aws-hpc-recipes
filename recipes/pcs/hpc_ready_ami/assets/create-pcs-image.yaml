@@ -236,7 +236,7 @@ Resources:
       Handler: index.lambda_handler
       Role: !GetAtt TagLambdaExecutionRole.Arn
       Runtime: python3.11
-      Timeout: 30
+      Timeout: 300
       Code:
         ZipFile: |
           import boto3
