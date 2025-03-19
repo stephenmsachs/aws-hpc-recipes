@@ -220,8 +220,15 @@ Resources:
               - Effect: Allow
                 Action:
                   - 'ec2:CreateTags'
-                  - 'ec2:Describe*'
                 Resource: 'arn:aws:ec2:*::image/*'
+        - PolicyName: EC2DescribeImages
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:DescribeImages'
+                Resource: '*'
 
   TagLambdaFunction:
     Type: 'AWS::Lambda::Function'
